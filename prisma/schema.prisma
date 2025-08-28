@@ -13,3 +13,96 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// Tabela 1: Utilizadores (Alunos, Professores, Admins)
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(STUDENT)
+  avatarUrl    String?
+  createdAt    DateTime  @default(now())
+
+  // Relações
+  enrollments  Enrollment[]
+  announcements Announcement[]
+
+  @@map("users")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+// Tabela 2: Módulos do Curso
+model Module {
+  id    String @id @default(uuid())
+  name  String
+  order Int
+
+  // Relações
+  enrollments Enrollment[]
+  announcements Announcement[]
+
+  @@map("modules")
+}
+
+// Tabela 3: Matrículas (Conecta Aluno a Módulo)
+model Enrollment {
+  id         String   @id @default(uuid())
+  classId    String // Ex: "turma-87"
+  status     EnrollmentStatus @default(PENDING)
+  finalGrade Decimal?
+  
+  studentId  String
+  moduleId   String
+
+  // Relações
+  student User   @relation(fields: [studentId], references: [id])
+  module  Module @relation(fields: [moduleId], references: [id])
+  grades  Grade[]
+
+  @@map("enrollments")
+}
+
+enum EnrollmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+// Tabela 4: Notas de Avaliações
+model Grade {
+  id           String   @id @default(uuid())
+  description  String   // Ex: "Prova 1"
+  gradeValue   Decimal
+  weight       Decimal? // Peso opcional
+  
+  enrollmentId String
+  
+  // Relações
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  @@map("grades")
+}
+
+// Tabela 5: Avisos do Mural
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+
+  authorId  String
+  moduleId  String?
+
+  // Relações
+  author User   @relation(fields: [authorId], references: [id])
+  module Module? @relation(fields: [moduleId], references: [id])
+
+  @@map("announcements")
+}
